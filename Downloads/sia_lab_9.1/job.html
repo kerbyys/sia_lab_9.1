@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Detail</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: radial-gradient(circle at top left, rgba(102, 126, 234, 0.18), transparent 35%),
+                        radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.14), transparent 30%),
+                        #eef2ff;
+        }
+        .detail-card {
+            border-radius: 24px;
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.1);
+            border: none;
+            background: #ffffff;
+        }
+        .detail-card .card-title {
+            color: #1d4ed8;
+        }
+        .field-label {
+            color: #4b5563;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="mb-4">
+            <a href="index.html" class="btn btn-outline-primary btn-sm">&larr; Back to Listings</a>
+        </div>
+        <div id="detail-container" class="row"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const supabaseUrl = 'https://lzjskkakyrhsbjnyjpjm.supabase.co';
+        const supabaseKey = 'sb_publishable_4VE4pcQPXJ_46vX1AV6cvA_diURQ8Mi';
+
+        function getQueryParam(name) {
+            return new URLSearchParams(window.location.search).get(name);
+        }
+
+        const jobId = getQueryParam('id');
+        const detailContainer = document.getElementById('detail-container');
+
+        if (!jobId) {
+            detailContainer.innerHTML = '<div class="col-12"><div class="alert alert-warning">No job selected. Return to the listings and choose a job.</div></div>';
+        } else {
+            detailContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">Loading job details...</div></div>';
+
+            fetch(`${supabaseUrl}/rest/v1/jobs?id=eq.${encodeURIComponent(jobId)}`, {
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!Array.isArray(data) || data.length === 0) {
+                    detailContainer.innerHTML = '<div class="col-12"><div class="alert alert-danger">Job not found.</div></div>';
+                    return;
+                }
+
+                const job = data[0];
+                const titleText = job.title || job.name || job.job_name || job.position || job.role || 'Job Detail';
+                const descriptionText = job.description || 'No description available.';
+
+                let html = `
+                    <div class="col-12 col-lg-10 mx-auto">
+                        <div class="card detail-card p-4">
+                            <div class="card-body">
+                                <h1 class="card-title mb-3">${titleText}</h1>
+                                <p class="lead text-secondary mb-4">${descriptionText}</p>
+                                <div class="row gy-3">
+                `;
+
+                for (let key in job) {
+                    if (key === 'id' || key === 'created_at' || key === 'title' || key === 'description') continue;
+                    html += `
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="field-label small mb-1">${key.replace(/_/g, ' ')}</div>
+                                <div>${job[key] ?? 'N/A'}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                detailContainer.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error fetching job:', error);
+                detailContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger">Error loading job details: ${error.message}</div></div>`;
+            });
+        }
+    </script>
+</body>
+</html>
